@@ -2578,6 +2578,13 @@ class Project(object):
         else:
           raise
 
+  def _LocallyChanged(self):
+    work_head = self.work_git.GetHead()
+    bare_head = self.GetRevisionId(self.bare_ref.all)
+    return work_head != bare_head \
+        or self.HasChanges() \
+        or len(self.GetBranches()) > 0
+
   def _InitWorkTree(self, force_sync=False, submodules=False):
     dotgit = os.path.join(self.worktree, '.git')
     init_dotgit = not os.path.exists(dotgit)
@@ -2590,7 +2597,7 @@ class Project(object):
       try:
         self._CheckDirReference(self.gitdir, dotgit, share_refs=True)
       except GitError as e:
-        if force_sync:
+        if force_sync or not self._LocallyChanged():
           try:
             platform_utils.rmtree(dotgit)
             return self._InitWorkTree(force_sync=False, submodules=submodules)
